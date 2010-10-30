@@ -4,9 +4,12 @@ runtime: python
 api_version: 1
 
 handlers:
+- url: /example
+  script: example.py
+  secure: optional
+
 - url: .*
   script: likeindex.py
-  login: required
   secure: optional
 
 builtins:
