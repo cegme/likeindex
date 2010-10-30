@@ -6,3 +6,9 @@ api_version: 1
 handlers:
 - url: .*
   script: likeindex.py
+  login: required
+  secure: optional
+
+builtins:
+- datastore_admin: on
+- appstats: on
