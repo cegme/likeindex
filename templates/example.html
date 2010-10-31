@@ -5,11 +5,18 @@
     <title>Facebook Example</title>
   </head>
   <body>
-    <fb:login-button autologoutlink="true"></fb:login-button>
+    <fb:login-button autologoutlink="true" perms="email,user_birthday,user_likes,friends_likes,user_location,friends_location,user_interests,friends_interests,user_checkins,friends_checkins"></fb:login-button>
 
     {% if current_user %}
       <p><a href="{{ current_user.profile_url }}"><img src="http://graph.facebook.com/{{ current_user.id }}/picture?type=square"/></a></p>
       <p>Hello, {{ current_user.name|escape }}</p>
+      {% if likes %}
+      	<table>
+      	{% for like in likes.data %}
+      		<tr><td>{{like.name|escape}}</td> <td>{{like.category|escape}}</td></tr></p>
+      	{% endfor %}
+      	</table>
+      {% endif %}
     {% endif %}
 
     <div id="fb-root"></div>
