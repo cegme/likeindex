@@ -91,8 +91,10 @@ class BaseHandler(webapp.RequestHandler):
 
 class HomeHandler(BaseHandler):
 	def get(self):
+		like_list = {"data" : []}
+		if self.current_user:	
+			like_list = self.graph.request("me/likes",{"access_token":self.current_user.access_token})
 		
-		like_list = self.graph.request("me/likes",{"access_token":self.current_user.access_token})
 		logging.debug("like_list: %s"%str(like_list))
 		
 		args = dict(current_user = self.current_user,
