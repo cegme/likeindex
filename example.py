@@ -71,7 +71,7 @@ class BaseHandler(webapp.RequestHandler):
 		
 	@property
 	def graph(self):
-		if not hasattr(self, "_graph"):
+		if not hasattr(self, "_graph") and self.current_user:
 			self._graph = None
 			tok = self.current_user.access_token
 			self._graph = facebook.GraphAPI(tok)
