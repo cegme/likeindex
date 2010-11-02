@@ -21,14 +21,29 @@ import logging
 import os.path
 import wsgiref.handlers
 
+from google.appengine import api
+
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp import template
 
+from models import Likes
 from models import User
 
+# Find a JSON parser
 try:
+    import json
+except ImportError:
+    try:
+        import simplejson as json
+    except ImportError:
+        # For Google AppEngine
+        from django.utils import simplejson as json
+_parse_json = lambda s: json.loads(s)
+
+try:
+	# This is the resource dictionary
 	import res
 except:
 	pass
@@ -57,8 +72,11 @@ class BaseHandler(webapp.RequestHandler):
 				if not user:
 					graph = facebook.GraphAPI(cookie["access_token"])
 					profile = graph.get_object("me")
+					# Change the user type's key to be a unique key (maybe openid)
 					user = User(key_name=str(profile["id"]),
-								id=str(profile["id"]),
+					#user = User(key_name=str(api.users.get_current_user().email()),
+								guser=api.users.get_current_user(),
+								fbid=str(profile["id"]),
 								name=profile["name"],
 								profile_url=profile["link"],
 								access_token=cookie["access_token"])
@@ -86,21 +104,42 @@ class BaseHandler(webapp.RequestHandler):
 		args.update(kwargs)
 		path = os.path.join(os.path.dirname(__file__), "templates/example.html")
 		self.response.out.write(template.render(path, args))
-		
 
 
 class HomeHandler(BaseHandler):
 	def get(self):
-		like_list = {"data" : []}
+		like_list = {u'data' : []}
 		if self.current_user:	
-			like_list = self.graph.request("me/likes",{"access_token":self.current_user.access_token})
+			like_list = self.graph.request("me/likes",
+				{"access_token":self.current_user.access_token})
 		
 		logging.debug("like_list: %s"%str(like_list))
+		
+		map(self.add_like, like_list[u'data'])
+		#map(lambda x: self.add_like(x,'twitter'), like_list[u'data'])
+		#map(lambda x: self.add_like(x,'youtube'), like_list[u'data'])
 		
 		args = dict(current_user = self.current_user,
 					likes = like_list,
 					facebook_app_id = FACEBOOK_APP_ID)
 		self.render("example.html", likes=like_list)
+
+
+	def add_like(self, thelike, type=u'facebook'):
+		""" Adds the like to the current user. """
+		if self.current_user:
+			logging.info("add_like: %s %s"%(str(self.current_user),str(thelike)))
+			new_like = Likes(user=self.current_user,
+				source=u'facebook',
+				category=thelike[u'category'],
+				name=thelike[u'name'],
+				likeid=thelike[u'id'])
+			# Check for duplicates
+			if db.GqlQuery("SELECT __key__ FROM Likes WHERE user = :1 AND name = :2",
+				new_like.user, new_like.name).count(1) == 0:
+				new_like.put() # Does not exist so put it in the data store
+		else:
+			return
 
 
 def main():
